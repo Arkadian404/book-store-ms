@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/userdb?createDatabaseIfNotExist=true
+    username: zafu
+    password: zafu
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: "EVR:org.zafu.userservice.dto.request.EmailVerificationRequest,
+  PRR:org.zafu.userservice.dto.request.PasswordResetRequest,PCN:org.zafu.userservice.dto.request.PasswordChangedNotification"
+
+
+app:
+  client:
+    identity-url: http://localhost:8800/api/v1
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration-time: 3600
+
+server:
+  port: 8020

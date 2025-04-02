@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3307/paymentdb?createDatabaseIfNotExist=true
+    username: zafu
+    password: zafu
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: "OC:org.zafu.paymentservice.dto.request.OrderConfirmation"
+
+#require https
+app:
+  stripe:
+    publish-key: ${STRIPE_PUBLISH_KEY}
+    secret-key: ${STRIPE_SECRET_KEY}
+    webhook-signing-key: ${STRIPE_WEBHOOK_SIGNING_KEY}
+  client:
+    order-url: http://localhost:8040/api/v1
+    book-url: http://localhost:8010/api/v1
+    cart-url: http://localhost:8030/api/v1
+
+server:
+  port: 8050

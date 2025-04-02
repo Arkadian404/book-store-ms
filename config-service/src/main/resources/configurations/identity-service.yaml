@@ -1,0 +1,10 @@
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration-time: 3600
+    refresh-expiration-time: 86400
+  client:
+    user-url: http://localhost:8020/api/v1/users
+
+server:
+  port: 8800

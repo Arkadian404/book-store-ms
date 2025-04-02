@@ -1,0 +1,31 @@
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: identity-service
+          uri: lb:http://IDENTITY-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/auth/**
+        - id: user-service
+          uri: lb:http://USER-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/users/**
+        - id: book-service
+          uri: lb:http://BOOK-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/books/**
+
+app:
+  api-prefix: /api/v1
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration-time: 3600000
+  client:
+    identity-url: http://localhost:8800/api/v1
+
+
+server:
+  port: 8080

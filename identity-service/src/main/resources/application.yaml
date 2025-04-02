@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: identity-service
+  config:
+    import: optional:configserver:http://localhost:8888
+springdoc:
+  swagger-ui:
+    path: /identity/v3/api-docs/swagger-ui
+  api-docs:
+    path: /identity/v3/api-docs
+
+

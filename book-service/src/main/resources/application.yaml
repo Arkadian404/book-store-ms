@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: book-service
+  config:
+    import: optional:configserver:http://localhost:8888
+springdoc:
+  swagger-ui:
+    path: /books/v3/api-docs/swagger-ui
+  api-docs:
+    path: /books/v3/api-docs

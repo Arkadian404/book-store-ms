@@ -1,0 +1,31 @@
+spring:
+  kafka:
+    bootstrap-servers: localhost:9094
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+        spring.json.type.mapping: "EVR:org.zafu.notificationservice.kafka.user.EmailVerificationRequest,
+  PRR:org.zafu.notificationservice.kafka.user.PasswordResetRequest,PCN:org.zafu.notificationservice.kafka.user.PasswordChangedNotification,
+  OC:org.zafu.notificationservice.kafka.order.OrderConfirmation"
+      enable-auto-commit: false
+    listener:
+      ack-mode: manual
+
+  mail:
+    host: localhost
+    port: 1025
+    username: zafuog
+    properties:
+      mail:
+        smtp:
+          trust: '*'
+        starttls:
+          enable: true
+          required: true
+        auth: true
+        connectiontimeout: 5000
+        timeout: 5000
+        writetimeout: 5000
