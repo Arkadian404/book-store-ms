@@ -61,8 +61,11 @@ public class GoogleBooksApiClient {
         List<String> authorsReq = request.getAuthors();
         Slugify slugify = Slugify.builder().transliterator(true).build();
         book.setSlug(slugify.slugify(book.getTitle()));
-        Publisher publisher = publisherRepository.findByName(publisherReq)
-                .orElse(publisherRepository.save(Publisher.builder().name(publisherReq).build()));
+        Publisher publisher = publisherRepository.findByName(publisherReq).orElseGet(() -> {
+            Publisher newPublisher = Publisher.builder().name(publisherReq).build();
+            publisherRepository.save(newPublisher);
+            return newPublisher;
+        });
         book.setPublisher(publisher);
         List<Category> categories = getOrCreateCategories(categoriesReq);
         book.setCategories(categories);

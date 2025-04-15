@@ -36,35 +36,35 @@ public class CartController {
     }
 
     @PostMapping("/user/{userId}/items")
-    public ApiResponse<Void> addItemToCart(
+    public ApiResponse<CartItemResponse> addItemToCart(
         @PathVariable Integer userId,
         @RequestBody @Valid AddCartItemRequest request
     ){
-        cartService.addItemToCart(userId, request);
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<CartItemResponse>builder()
                 .message("Add item to cart successfully")
+                .result(cartService.addItemToCart(userId, request))
                 .build();
     }
 
     @PutMapping("/user/{userId}/items/{bookId}")
-    public ApiResponse<Void> updateCartItemQuantity(
+    public ApiResponse<CartItemResponse> updateCartItemQuantity(
         @PathVariable Integer userId,
         @PathVariable Integer bookId,
         @RequestBody @Valid UpdateCartItemRequest request
     ){
-        cartService.updateCartItemQuantity(userId, bookId, request);
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<CartItemResponse>builder()
                 .message("Update item quantity successfully")
+                .result(cartService.updateCartItemQuantity(userId, bookId, request))
                 .build();
     }
 
     @DeleteMapping("/user/{userId}/items/{bookId}")
-    public ApiResponse<Void> removeItemFromCart(
+    public ApiResponse<CartItemResponse> removeItemFromCart(
         @PathVariable Integer userId,
         @PathVariable Integer bookId
     ){
         cartService.removeItemFromCart(userId, bookId);
-        return ApiResponse.<Void>builder()
+        return ApiResponse.<CartItemResponse>builder()
                 .message("Remove item from cart successfully")
                 .build();
     }

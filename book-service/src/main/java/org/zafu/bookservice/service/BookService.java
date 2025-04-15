@@ -1,8 +1,6 @@
 package org.zafu.bookservice.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.github.slugify.Slugify;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -39,7 +37,6 @@ import org.zafu.bookservice.repository.*;
 import org.zafu.bookservice.repository.criteria.FilterCriteria;
 import org.zafu.bookservice.repository.criteria.FilterCriteriaConsumer;
 import org.zafu.bookservice.utils.CloudinaryService;
-import org.zafu.bookservice.utils.ExcelHelper;
 
 
 import java.time.LocalDate;
@@ -139,10 +136,33 @@ public class BookService {
         return mapper.toBookResponse(repository.save(book));
     }
 
+    public BookResponse getBySlug(String slug){
+        Book book = repository.findBySlug(slug).orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_EXISTED));
+        return mapper.toBookResponse(repository.save(book));
+    }
+
     public PageResponse<BookResponse> getAllBooksPaging(int page, int size){
         if(page<1 || size <1) throw new AppException(ErrorCode.PAGE_OR_SIZE_MUST_BE_VALID);
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Book> bookPage = repository.findAll(pageable);
+        List<BookResponse> data = bookPage.getContent().stream()
+                .map(mapper::toBookResponse)
+                .toList();
+        return PageResponse.<BookResponse>builder()
+                .currentPage(page)
+                .pageSize(pageable.getPageSize())
+                .totalPages(bookPage.getTotalPages())
+                .totalElements(bookPage.getTotalElements())
+                .data(data)
+                .build();
+    }
+
+    public PageResponse<BookResponse> getAllBooksPagingByCategory(int page, int size, String categoryName){
+        if(page<1 || size <1) throw new AppException(ErrorCode.PAGE_OR_SIZE_MUST_BE_VALID);
+        Category category = categoryRepository.findByName(categoryName)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Book> bookPage = repository.findAllByCategoriesIn(List.of(category), pageable);
         List<BookResponse> data = bookPage.getContent().stream()
                 .map(mapper::toBookResponse)
                 .toList();
@@ -203,7 +223,7 @@ public class BookService {
             }
         }
 
-        long totalElements = getTotalElements(criteriaList, builder, root, query);
+        long totalElements = getTotalElements(criteriaList, builder);
         log.info("Total elements {}", totalElements);
 
         List<Book> books = entityManager.createQuery(query)
@@ -214,12 +234,12 @@ public class BookService {
         return new PageImpl<>(books, PageRequest.of(page - 1, size), totalElements);
     }
 
-    private long getTotalElements(List<FilterCriteria> criteriaList, CriteriaBuilder builder, Root<Book> root, CriteriaQuery<Book> query) {
+    private long getTotalElements(List<FilterCriteria> criteriaList, CriteriaBuilder builder) {
         CriteriaQuery<Long> countQuery = builder.createQuery(Long.class);
         Root<Book> countRoot = countQuery.from(Book.class);
         countQuery.select(builder.count(countRoot));
-        Predicate countPredicate = buildPredicate(builder, root, criteriaList);
-        query.where(countPredicate);
+        Predicate countPredicate = buildPredicate(builder, countRoot, criteriaList);
+        countQuery.where(countPredicate);
 
        return entityManager.createQuery(countQuery).getSingleResult();
     }
@@ -413,5 +433,41 @@ public class BookService {
         }
         book.setStockQuantity(book.getStockQuantity() - request.getQuantity());
         return mapper.toBookResponse(repository.save(book));
+    }
+
+
+    public List<BookResponse> getFeaturedBooks(){
+        List<Book> books = repository.findFeaturedBooks();
+        return books.stream()
+                .map(mapper::toBookResponse)
+                .toList();
+    }
+
+    public BookResponse getBestSellingBook(){
+        Book book = repository.findBestSellingBook().orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_EXISTED));
+        return mapper.toBookResponse(book);
+    }
+
+    public List<BookResponse> getAllGenres(){
+        List<Book> books = repository.findAllGenres();
+        return books.stream()
+                .map(mapper::toBookResponse)
+                .toList();
+    }
+
+    public List<BookResponse> getBookByCategoryName(String name){
+        Category category = categoryRepository.findByName(name)
+                .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_EXISTED));
+        List<Book> books = repository.findTop4ByCategoriesIn(List.of(category));
+        return books.stream()
+                .map(mapper::toBookResponse)
+                .toList();
+    }
+
+    public List<BookResponse> getRelatedBooksByCategoriesIn(String category, Integer id){
+        List<Book> books = repository.findRelatedBooksByCategoriesIn(category, id);
+        return books.stream()
+                .map(mapper::toBookResponse)
+                .toList();
     }
 }

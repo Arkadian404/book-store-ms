@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 @Slf4j
 public enum DataUniqueError {
-    DUPLICATE_ISBN("isbn_uq", "ISBN is already taken")
+    DUPLICATE_ISBN("isbn_uq", "ISBN is already taken"),
+    DUPLICATE_PUBLISHER_NAME("publisher_name_uq", "Publisher name is already taken"),
     ;
 
     private final String dbMessage;

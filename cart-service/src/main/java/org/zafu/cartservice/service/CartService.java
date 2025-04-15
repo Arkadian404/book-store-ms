@@ -52,7 +52,7 @@ public class CartService {
 
 
     @Transactional
-    public void addItemToCart(Integer userId, AddCartItemRequest request){
+    public CartItemResponse addItemToCart(Integer userId, AddCartItemRequest request){
         Cart cart = getOrCreateCart(userId);
         CartItem cartItem = cartItemRepository.findByCartIdAndBookId(cart.getId(), request.getBookId())
                 .orElseGet(() -> {
@@ -63,17 +63,17 @@ public class CartService {
                     return newItem;
                 });
         cartItem.setQuantity(cartItem.getQuantity() + request.getQuantity());
-        cartItemRepository.save(cartItem);
+        return cartItemMapper.toCartItemResponse(cartItemRepository.save(cartItem), bookClient);
     }
 
     @Transactional
-    public void updateCartItemQuantity(Integer userId, Integer bookId, UpdateCartItemRequest request){
+    public CartItemResponse updateCartItemQuantity(Integer userId, Integer bookId, UpdateCartItemRequest request){
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND));
         CartItem cartItem = cartItemRepository.findByCartIdAndBookId(cart.getId(), bookId)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_ITEM_NOT_FOUND));
         cartItem.setQuantity(request.getQuantity());
-        cartItemRepository.save(cartItem);
+        return cartItemMapper.toCartItemResponse(cartItemRepository.save(cartItem), bookClient);
     }
 
     @Transactional

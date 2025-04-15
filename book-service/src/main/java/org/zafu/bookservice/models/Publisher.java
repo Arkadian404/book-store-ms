@@ -11,7 +11,12 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "publishers")
+@Table(
+        name = "publishers",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "publisher_name_uq", columnNames = "name")
+        }
+)
 @Builder
 public class Publisher extends EntityBase<Integer> {
     @Column(nullable = false)

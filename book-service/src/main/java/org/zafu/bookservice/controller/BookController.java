@@ -42,6 +42,81 @@ public class BookController {
                 .build();
     }
 
+
+    @GetMapping("/slug/{slug}")
+    public ApiResponse<BookResponse> getBookBySlug(@PathVariable String slug){
+        return ApiResponse.<BookResponse>builder()
+                .message("Get book with slug: " + slug)
+                .result(bookService.getBySlug(slug))
+                .build();
+    }
+
+    @GetMapping("/sides/featured")
+    public ApiResponse<List<BookResponse>> getFeaturedBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getFeaturedBooks())
+                .build();
+    }
+
+    @GetMapping("/sides/best-seller")
+    public ApiResponse<BookResponse> getBestSellerBooks(){
+        return ApiResponse.<BookResponse>builder()
+                .result(bookService.getBestSellingBook())
+                .build();
+    }
+
+    @GetMapping("/sides/all-genres")
+    public ApiResponse<List<BookResponse>> getAllGenresBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getAllGenres())
+                .build();
+    }
+
+    @GetMapping("/sides/fiction")
+    public ApiResponse<List<BookResponse>> getFictionBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getBookByCategoryName("Fiction"))
+                .build();
+    }
+
+    @GetMapping("/sides/drama")
+    public ApiResponse<List<BookResponse>> getDramaBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getBookByCategoryName("Drama"))
+                .build();
+    }
+
+    @GetMapping("/sides/history")
+    public ApiResponse<List<BookResponse>> getHistoryBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getBookByCategoryName("History"))
+                .build();
+    }
+
+    @GetMapping("/sides/poetry")
+    public ApiResponse<List<BookResponse>> getPoetryBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getBookByCategoryName("Poetry"))
+                .build();
+    }
+
+    @GetMapping("/sides/literary-criticism")
+    public ApiResponse<List<BookResponse>> getLiteraryCriticismBooks(){
+        return ApiResponse.<List<BookResponse>>builder()
+                .result(bookService.getBookByCategoryName("Literary Criticism"))
+                .build();
+    }
+
+    @GetMapping("/sides/related")
+    public ApiResponse<List<BookResponse>> getRelatedBooks(
+            @RequestParam String category,
+            @RequestParam Integer bookId){
+        return ApiResponse.<List<BookResponse>>builder()
+                .message("Get related books with category: " + category)
+                .result(bookService.getRelatedBooksByCategoriesIn(category, bookId))
+                .build();
+    }
+
     @GetMapping("/download")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<InputStreamResource> downloadFile(){
@@ -63,13 +138,24 @@ public class BookController {
                 .build();
     }
 
-    @GetMapping("/page")
+    @GetMapping("/page/all")
     public ApiResponse<PageResponse<BookResponse>> getAllBooksPaging(
             @RequestParam(defaultValue = "1", required = false) int page,
             @RequestParam(defaultValue = "12", required = false) int size
     ){
         return ApiResponse.<PageResponse<BookResponse>>builder()
                 .result(bookService.getAllBooksPaging(page, size))
+                .build();
+    }
+
+    @GetMapping("/page/category/{categoryName}")
+    public ApiResponse<PageResponse<BookResponse>> getAllBooksPagingCategoryName(
+            @RequestParam(defaultValue = "1", required = false) int page,
+            @RequestParam(defaultValue = "12", required = false) int size,
+            @PathVariable String categoryName
+    ){
+        return ApiResponse.<PageResponse<BookResponse>>builder()
+                .result(bookService.getAllBooksPagingByCategory(page, size, categoryName))
                 .build();
     }
 

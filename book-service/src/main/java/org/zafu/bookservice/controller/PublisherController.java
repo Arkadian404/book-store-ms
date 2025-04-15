@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import org.zafu.bookservice.dto.ApiResponse;
 import org.zafu.bookservice.dto.request.PublisherRequest;
 import org.zafu.bookservice.dto.response.PublisherResponse;
-import org.zafu.bookservice.dto.response.PublisherResponse;
 import org.zafu.bookservice.service.PublisherService;
 
 import java.util.List;
@@ -24,6 +23,16 @@ public class PublisherController {
         return ApiResponse.<List<PublisherResponse>>builder()
                 .message("Get all publishers successfully")
                 .result(service.getAll())
+                .build();
+    }
+
+    @GetMapping("/category/{categoryName}")
+    public ApiResponse<List<PublisherResponse>> getPublishersByCategory(
+            @PathVariable String categoryName
+    ) {
+        return ApiResponse.<List<PublisherResponse>>builder()
+                .message("Get all publishers successfully by category: " + categoryName)
+                .result(service.getByCategory(categoryName))
                 .build();
     }
 

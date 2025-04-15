@@ -37,7 +37,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     @Value("${app.api-prefix}")
     private String apiPrefix;
     private static final String[] PUBLIC_ENDPOINTS = {
-            "/v3/api-docs/**",
+            "/v3/api-docs/.*",
             "/swagger-config.json",
             "/auth/.*",
             "/tokens/.*",
@@ -47,14 +47,17 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/users/verify",
             "/users/password/.*",
             "/books",
+            "/books/slug/.*",
+            "/books/sides/.*",
             "/books/authors",
+            "/books/authors/category/.*",
             "/books/publishers",
+            "/books/publishers/category/.*",
             "/books/categories",
             "/books/google-books/.*",
-            "/books/page",
-            "/books/page/filter",
+            "/books/page/.*",
             "/books/search",
-            "/books/search/[0-9]+"
+            "/books/search/[0-9]+",
     };
 
     @Override

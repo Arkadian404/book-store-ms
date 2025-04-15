@@ -31,52 +31,6 @@ public class JwtUtils {
     @Value("${app.jwt.refresh-expiration-time}")
     private long REFRESH_EXPIRATION_TIME;
 
-//    private <T> T extractClaim(String token, Function<Claims, T> resolver){
-//        final Claims claims = getClaims(token);
-//        return resolver.apply(claims);
-//    }
-//
-//
-//    public String generateToken(UserInfo userInfo){
-//        return Jwts.builder()
-//                .subject(userInfo.getUsername())
-//                .claim("role", userInfo.getRole())
-//                .issuer("ZafuOG")
-//                .issuedAt(new Date(System.currentTimeMillis()))
-//                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-//                .signWith(getSigningKey(), Jwts.SIG.HS256)
-//                .compact();
-//    }
-//
-//    private Claims getClaims(String token){
-//        return Jwts.parser()
-//                .verifyWith(getSigningKey())
-//                .build()
-//                .parseSignedClaims(token)
-//                .getPayload();
-//    }
-//
-//    public Date getExpirationDate(String token){
-//        return extractClaim(token, Claims::getExpiration);
-//    }
-//
-//    public boolean isExpired(String token){
-//        return getExpirationDate(token).before(new Date());
-//    }
-//
-//    public boolean isValidToken(String token){
-//        if(isExpired(token)){
-//            throw new AppException(ErrorCode.UNAUTHENTICATED);
-//        }
-//        return true;
-//    }
-//
-//
-//    private SecretKey getSigningKey(){
-//        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET_KEY));
-//    }
-
-
 
     public String generateToken(BasicUserInfo userInfo, TokenType purpose){
         try{
@@ -98,6 +52,7 @@ public class JwtUtils {
                     )
                     .claim("scope", buildScope(userInfo))
                     .claim("purpose", purpose)
+                    .claim("uid", userInfo.getUserId())
                     .jwtID(UUID.randomUUID().toString())
                     .build();
             Payload payload = new Payload(claimsSet.toJSONObject());

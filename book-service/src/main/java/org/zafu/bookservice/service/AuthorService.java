@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.zafu.bookservice.dto.request.AuthorRequest;
 import org.zafu.bookservice.dto.response.AuthorResponse;
-import org.zafu.bookservice.dto.response.AuthorResponse;
 import org.zafu.bookservice.exception.AppException;
 import org.zafu.bookservice.exception.ErrorCode;
 import org.zafu.bookservice.mapper.AuthorMapper;
@@ -49,5 +48,13 @@ public class AuthorService {
     public AuthorResponse getById(int id){
         Author author = repository.findById(id).orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_EXISTED));
         return mapper.toAuthorResponse(repository.save(author));
+    }
+
+    public List<AuthorResponse> getByCategory(String category){
+        List<Author> authors = repository.findAllByCategory(category);
+        return authors
+                .stream()
+                .map(mapper::toAuthorResponse)
+                .toList();
     }
 }

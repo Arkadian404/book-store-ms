@@ -44,6 +44,7 @@ public class AuthenticationService {
                 throw new AppException(ErrorCode.INVALID_CREDENTIALS);
             }
             BasicUserInfo basic = BasicUserInfo.builder()
+                    .userId(userInfo.getId())
                     .username(userInfo.getUsername())
                     .role(userInfo.getRole())
                     .build();

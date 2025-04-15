@@ -48,4 +48,12 @@ public class PublisherService {
         Publisher publisher = repository.findById(id).orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_EXISTED));
         return mapper.toPublisherResponse(repository.save(publisher));
     }
+
+    public List<PublisherResponse> getByCategory(String category){
+        List<Publisher> publishers = repository.findAllByCategoryName(category);
+        return publishers
+                .stream()
+                .map(mapper::toPublisherResponse)
+                .toList();
+    }
 }

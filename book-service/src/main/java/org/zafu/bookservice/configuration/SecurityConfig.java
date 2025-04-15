@@ -22,12 +22,15 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/v1/books",
+            "/api/v1/books/slug/**",
+            "/api/v1/books/sides/**",
             "/api/v1/books/authors",
+            "/api/v1/books/authors/category/**",
             "/api/v1/books/publishers",
+            "/api/v1/books/publishers/category/**",
             "/api/v1/books/categories",
             "/api/v1/books/google-books/**",
-            "/api/v1/books/page",
-            "/api/v1/books/page/filter",
+            "/api/v1/books/page/**",
             "/api/v1/books/search",
             "/api/v1/books/{id}",
             "/api/v1/books/{id}/stock",

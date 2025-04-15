@@ -24,9 +24,9 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Book extends EntityBase<Integer> {
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1250)
     private String title;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 2500)
     private String slug;
     @Column(length = 10000)
     private String description;

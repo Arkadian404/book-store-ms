@@ -17,6 +17,18 @@ spring:
           uri: lb:http://BOOK-SERVICE
           predicates:
             - Path=${app.api-prefix}/books/**
+        - id: cart-service
+          uri: lb:http://CART-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/carts/**
+        - id: order-service
+          uri: lb:http://ORDER-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/orders/**
+        - id: payment-service
+          uri: lb:http://PAYMENT-SERVICE
+          predicates:
+            - Path=${app.api-prefix}/payments/**
 
 app:
   api-prefix: /api/v1

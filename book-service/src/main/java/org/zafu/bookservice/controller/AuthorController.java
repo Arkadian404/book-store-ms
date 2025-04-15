@@ -25,6 +25,16 @@ public class AuthorController {
                 .build();
     }
 
+    @GetMapping("/category/{category}")
+    public ApiResponse<List<AuthorResponse>> getByCategory(
+            @PathVariable String category
+    ) {
+        return ApiResponse.<List<AuthorResponse>>builder()
+                .message("Get all authors by category: " + category)
+                .result(service.getByCategory(category))
+                .build();
+    }
+
     @GetMapping("/{id}")
     public ApiResponse<AuthorResponse> getById(@PathVariable Integer id) {
         return ApiResponse.<AuthorResponse>builder()
