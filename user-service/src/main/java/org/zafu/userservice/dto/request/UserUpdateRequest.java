@@ -6,9 +6,6 @@ import lombok.Getter;
 
 @Getter
 public class UserUpdateRequest {
-    @NotNull(message = "Password is required")
-    @NotBlank(message = "Password can't be blank")
-    private String password;
     @NotNull(message = "Firstname is required")
     @NotBlank(message = "Firstname can't be blank")
     private String firstname;
@@ -18,4 +15,16 @@ public class UserUpdateRequest {
     @NotNull(message = "Phone is required")
     @NotBlank(message = "Phone can't be blank")
     private String phone;
+    @NotNull(message = "Address is required")
+    @NotBlank(message = "Address can't be blank")
+    private String address;
+    @NotNull(message = "Province is required")
+    @NotBlank(message = "Province can't be blank")
+    private String province;
+    @NotNull(message = "District is required")
+    @NotBlank(message = "District can't be blank")
+    private String district;
+    @NotNull(message = "Ward is required")
+    @NotBlank(message = "Ward can't be blank")
+    private String ward;
 }

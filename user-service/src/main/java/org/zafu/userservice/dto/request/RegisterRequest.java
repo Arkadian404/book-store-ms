@@ -17,4 +17,10 @@ public class RegisterRequest {
     @NotBlank(message = "Email can't be blank")
     @Email(message = "Email is invalid")
     private String email;
+    @NotNull(message = "Firstname is required")
+    @NotBlank(message = "Firstname can't be blank")
+    private String firstname;
+    @NotNull(message = "Lastname is required")
+    @NotBlank(message = "Lastname can't be blank")
+    private String lastname;
 }

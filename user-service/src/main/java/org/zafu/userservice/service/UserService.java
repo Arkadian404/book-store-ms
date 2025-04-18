@@ -156,15 +156,15 @@ public class UserService {
     }
 
 
-//    public String passwordChange(PasswordResetRequest request){
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        String username = authentication.getName();
-//        User user = userRepository.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-//        if(!request.getPassword().equals(request.getConfirmPassword())) throw new AppException(ErrorCode.PASSWORD_UNMATCHED);
-//        if(!passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new AppException(ErrorCode.PASSWORD_UNMATCHED);
-//        user.setPassword(passwordEncoder.encode(request.getPassword()));
-//        userRepository.save(user);
-//        return "Password changed successfully";
-//    }
+    public String passwordChange(UserUpdatePasswordRequest request){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        if(!request.getNewPassword().equals(request.getConfirmPassword())) throw new AppException(ErrorCode.PASSWORD_UNMATCHED);
+        if(!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) throw new AppException(ErrorCode.PASSWORD_UNMATCHED);
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        return "Password changed successfully";
+    }
 
 }

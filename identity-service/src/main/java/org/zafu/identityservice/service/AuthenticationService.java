@@ -39,9 +39,13 @@ public class AuthenticationService {
             var response = client
                     .findUserClientByUsername(request.getUsername())
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            var userInfo = response.getResult();
+            UserInfo userInfo = response.getResult();
+            log.info("User info {}", userInfo.toString());
             if(!passwordEncoder.matches(request.getPassword(), userInfo.getPassword())){
                 throw new AppException(ErrorCode.INVALID_CREDENTIALS);
+            }
+            if(!userInfo.isActivated()){
+                throw new AppException(ErrorCode.USER_NOT_ACTIVATED);
             }
             BasicUserInfo basic = BasicUserInfo.builder()
                     .userId(userInfo.getId())

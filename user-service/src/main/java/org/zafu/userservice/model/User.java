@@ -38,6 +38,10 @@ public class User {
     private String firstname;
     private String lastname;
     private String phone;
+    private String address;
+    private String province;
+    private String district;
+    private String ward;
     @Enumerated(EnumType.STRING)
     private Role role;
     @Builder.Default

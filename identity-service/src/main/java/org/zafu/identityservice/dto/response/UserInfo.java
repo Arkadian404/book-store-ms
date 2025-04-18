@@ -15,4 +15,18 @@ public class UserInfo {
     private String password;
     private String email;
     private String role;
+    private boolean isActivated;
+
+
+    @Override
+    public String toString() {
+        return "UserInfo{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", email='" + email + '\'' +
+                ", role='" + role + '\'' +
+                ", isActivated=" + isActivated +
+                '}';
+    }
 }

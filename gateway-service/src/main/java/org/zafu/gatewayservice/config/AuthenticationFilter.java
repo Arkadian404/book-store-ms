@@ -42,6 +42,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
             "/auth/.*",
             "/tokens/.*",
             "/users",
+            "/users/location/.*",
             "/users/secured",
             "/users/register",
             "/users/verify",

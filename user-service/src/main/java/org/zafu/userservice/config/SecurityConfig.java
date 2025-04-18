@@ -24,6 +24,7 @@ public class SecurityConfig {
             "/users/v3/swagger-ui/**",
             "/users/v3/api-docs/**",
             "/api/v1/users",
+            "/api/v1/users/location/**",
             "/api/v1/users/secured",
             "/api/v1/users/username/**",
             "/api/v1/users/register",

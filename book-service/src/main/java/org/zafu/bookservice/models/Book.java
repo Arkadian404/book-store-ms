@@ -55,7 +55,4 @@ public class Book extends EntityBase<Integer> {
     @JoinColumn(name = "publisher_id", nullable = false)
     private Publisher publisher;
     private LocalDate publishedDate;
-
-
-
 }

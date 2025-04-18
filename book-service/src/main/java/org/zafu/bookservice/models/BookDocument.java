@@ -17,6 +17,10 @@ public class BookDocument {
     private Integer id;
     @Field(type = FieldType.Text)
     private String title;
+    @Field(type = FieldType.Text, index = false)
+    private String slug;
+    @Field(type = FieldType.Keyword, index = false)
+    private String imageUrl;
     @Field(type = FieldType.Keyword)
     private String isbn;
     @Field(type = FieldType.Text)

@@ -20,6 +20,11 @@ spring:
 
 
 app:
+  ghn:
+    token-key: a2e193e1-e84a-11ee-b1d4-92b443b7a897
+    shop-id: 191477
+    api-url: https://dev-online-gateway.ghn.vn/shiip/public-api/master-data
+    fee-url: https://dev-online-gateway.ghn.vn/shiip/public-api/v2/shipping-order
   client:
     identity-url: http://localhost:8800/api/v1
   jwt:

@@ -6,6 +6,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.client.RestTemplate;
 import org.zafu.userservice.model.Role;
 import org.zafu.userservice.model.User;
 import org.zafu.userservice.repository.UserRepository;
@@ -36,5 +37,10 @@ public class AppInitialize {
             }
             log.info("Admin user already exists");
         };
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }

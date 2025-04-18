@@ -1,6 +1,7 @@
 package org.zafu.userservice.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.zafu.userservice.dto.request.UserRequest;
 import org.zafu.userservice.dto.request.UserUpdateRequest;
@@ -13,5 +14,6 @@ public interface UserMapper {
     User toUser(UserRequest request);
     void updateUser(@MappingTarget User user, UserUpdateRequest request);
     UserResponse toUserResponse(User user);
+    @Mapping(target = "isActivated", source = "activated")
     UserInfoResponse toRegisterResponse(User user);
 }
