@@ -25,6 +25,8 @@ public class SecurityConfig {
         "/payments/v3/api-docs/**",
         "/payments/v3/swagger-ui/**",
         "/api/v1/payments/webhooks/stripe",
+        "/api/v1/payments",
+        "/api/v1/payments/checkout/stripe",
     };
 
     private final Decoder jwtDecoder;

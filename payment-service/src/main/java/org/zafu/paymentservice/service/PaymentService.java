@@ -73,7 +73,7 @@ public class PaymentService {
                 .setMode(SessionCreateParams.Mode.PAYMENT)
                 .addAllLineItem(lineItems)
                 .putMetadata("orderCode", request.getOrderCode())
-                .setSuccessUrl("http://localhost:8050/views/success")
+                .setSuccessUrl("http://localhost:4200/order/success?orderCode="+request.getOrderCode())
                 .setCancelUrl("http://localhost:8050/views/cancel")
                 .build();
         try {

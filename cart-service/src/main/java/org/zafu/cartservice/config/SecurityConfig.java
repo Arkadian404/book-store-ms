@@ -23,6 +23,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
             "/carts/v3/api-docs/**",
             "/carts/v3/swagger-ui/**",
+            "/api/v1/carts/user/**"
     };
 
     private final Decoder jwtDecoder;

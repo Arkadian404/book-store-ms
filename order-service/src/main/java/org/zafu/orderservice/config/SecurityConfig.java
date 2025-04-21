@@ -23,7 +23,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
         "/orders/v3/api-docs/**",
-        "/orders/v3/swagger-ui/**",
+            "/orders/v3/swagger-ui/**",
             "/api/v1/orders/page",
             "/api/v1/orders/code/**",
     };

@@ -83,6 +83,7 @@ public class AuthenticationService {
             var response = client.findUserClientByUsername(username)
                     .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             BasicUserInfo userInfo = BasicUserInfo.builder()
+                    .userId(response.getResult().getId())
                     .username(response.getResult().getUsername())
                     .role(response.getResult().getRole())
                     .build();

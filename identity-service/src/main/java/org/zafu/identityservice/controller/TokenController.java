@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.zafu.identityservice.dto.ApiResponse;
 import org.zafu.identityservice.dto.response.BasicUserInfo;
-import org.zafu.identityservice.dto.response.UserInfo;
 import org.zafu.identityservice.service.AuthenticationService;
 
 @RestController

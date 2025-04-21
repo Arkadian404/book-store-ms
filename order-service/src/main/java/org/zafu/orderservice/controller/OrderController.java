@@ -1,8 +1,7 @@
 package org.zafu.orderservice.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.zafu.orderservice.dto.ApiResponse;
 import org.zafu.orderservice.dto.PageResponse;
@@ -11,16 +10,27 @@ import org.zafu.orderservice.dto.request.UpdateOrderStatusRequest;
 import org.zafu.orderservice.dto.response.OrderResponse;
 import org.zafu.orderservice.service.OrderService;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/orders")
 public class OrderController {
     private final OrderService orderService;
 
+    @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ApiResponse<List<OrderResponse>> getAll(){
+        return ApiResponse.<List<OrderResponse>>builder()
+                .message("Orders found")
+                .result(orderService.getAll())
+                .build();
+    }
+
 
     @GetMapping("/page")
     public ApiResponse<PageResponse<OrderResponse>> getOrders(
-            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ){
         return ApiResponse.<PageResponse<OrderResponse>>builder()
@@ -32,7 +42,7 @@ public class OrderController {
     @GetMapping("/user/{userId}")
     public ApiResponse<PageResponse<OrderResponse>> getOrdersByUserId(
             @PathVariable Integer userId,
-            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size
     ){
         return ApiResponse.<PageResponse<OrderResponse>>builder()

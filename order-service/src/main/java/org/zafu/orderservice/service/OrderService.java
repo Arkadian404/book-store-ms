@@ -41,6 +41,14 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
     private final OrderProducer orderProducer;
 
+    public List<OrderResponse> getAll(){
+        List<Order> orders = orderRepository.findAll();
+        return orders.stream()
+                .map(item -> orderMapper.toOrderResponse(item, bookClient))
+                .toList();
+    }
+
+
     @Transactional
     public OrderResponse createOrder(Integer userId, CreateOrderRequest request){
         CartResponse cartResponse = cartClient.getCartByUserId(userId)
@@ -166,7 +174,7 @@ public class OrderService {
             throw new AppException(ErrorCode.PAGE_OR_SIZE_MUST_BE_VALID);
         }
         Pageable pageable = PageRequest.of(page - 1, size)
-                .withSort(Sort.Direction.DESC, "createdAt");
+                .withSort(Sort.Direction.DESC, "createdDate");
         Page<Order> orderPage = orderRepository.findAllByUserId(userId, pageable);
         List<OrderResponse> orderResponses = orderPage.getContent().stream()
                 .map(item -> orderMapper.toOrderResponse(item, bookClient))
@@ -186,19 +194,6 @@ public class OrderService {
         return orderMapper.toOrderResponse(order, bookClient);
     }
 
-    @Transactional
-    public void saveBasicOrder(CreateOrderRequest request){
-        Order order = orderMapper.toOrder(request);
-        order.setStatus(OrderStatus.PENDING);
-        order.setUserId(3);
-        orderRepository.save(order);
-        List<OrderItem> items = new ArrayList<>();
-        items.add(new OrderItem(order, 5, 3, 500_000));
-        items.add(new OrderItem(order, 2, 3, 500_000));
-        orderItemRepository.saveAll(items);
-        order.setItems(items);
-        orderRepository.save(order);
-    }
 
     @Transactional
     public void updateOrderStatus(String orderCode, UpdateOrderStatusRequest request){
