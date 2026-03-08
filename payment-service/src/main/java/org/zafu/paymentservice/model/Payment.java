@@ -7,7 +7,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "payments")
+@Table(
+        name = "payments",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_payment_session_id", columnNames = "session_id"),
+                @UniqueConstraint(name = "uk_payment_order_type", columnNames = {"order_id", "type"}),
+        }
+)
 @Getter
 @Setter
 @AllArgsConstructor
@@ -22,6 +28,7 @@ public class Payment {
     private Integer orderId;
     @Column(nullable = false)
     private Integer userId;
+    @Column(unique = true, nullable = false)
     private String sessionId;
     @Column(nullable = false)
     private double totalAmount;

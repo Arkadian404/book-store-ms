@@ -12,13 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zafu.paymentservice.client.BookClient;
 import org.zafu.paymentservice.client.CartClient;
 import org.zafu.paymentservice.dto.request.*;
-import org.zafu.paymentservice.dto.response.OrderItemResponse;
+import org.zafu.paymentservice.dto.response.*;
 import org.zafu.paymentservice.mapper.PaymentMapper;
 import org.zafu.paymentservice.repository.PaymentRepository;
 import org.zafu.paymentservice.client.OrderClient;
-import org.zafu.paymentservice.dto.response.OrderResponse;
-import org.zafu.paymentservice.dto.response.OrderStatus;
-import org.zafu.paymentservice.dto.response.StripeResponse;
 import org.zafu.paymentservice.exception.AppException;
 import org.zafu.paymentservice.exception.ErrorCode;
 import org.zafu.paymentservice.model.Payment;
@@ -84,7 +81,7 @@ public class PaymentService {
                     .status("Success payment")
                     .message("Session created successfully")
                     .build();
-        }catch (StripeException e) {
+        } catch (StripeException e) {
             log.error("Error ", e);
             throw new AppException(ErrorCode.PAYMENT_FAILED);
         } catch (Exception e) {
@@ -95,15 +92,31 @@ public class PaymentService {
 
 
     @Transactional
-    public void handleStripePaymentSuccess(String orderCode, String sessionId){
-        OrderResponse orderResponse = orderClient.getOrderByOrderCode(orderCode)
+    public void handleStripePaymentSuccess(String orderCode, String sessionId) {
+        if (paymentRepository.existsBySessionId(sessionId)) {
+            log.info("Stripe webhook already processed for sessionId={}", sessionId);
+            return;
+        }
+        InternalOrderResponse orderResponse = orderClient.getInternalOrderByCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND))
                 .getResult();
-        UpdateOrderStatusRequest request =  UpdateOrderStatusRequest.builder()
-                .status(OrderStatus.PAID)
-                .build();
-        orderClient.updateOrderStatus(orderResponse.getOrderCode(), request);
-        for (OrderItemResponse orderItem : orderResponse.getItems()) {
+        if (paymentRepository.existsByOrderIdAndType(orderResponse.getId(), PaymentMethod.STRIPE)) {
+            log.info("Payment already recorded for orderId={}", orderResponse.getId());
+            return;
+        }
+
+        if (orderResponse.getStatus() == OrderStatus.PAID) {
+            log.info("Order {} is already marked as paid", orderCode);
+            return;
+        }
+
+        if (orderResponse.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            log.warn("Ignoring Stripe payment success for order {} in unexpected state {}", orderCode, orderResponse.getStatus());
+            throw new AppException(ErrorCode.PAYMENT_FAILED);
+        }
+
+        orderClient.markOrderAsPaid(orderResponse.getOrderCode());
+        for (InternalOrderItemResponse orderItem : orderResponse.getItems()) {
             UpdateStockRequest updateStockRequest = new UpdateStockRequest();
             updateStockRequest.setQuantity(orderItem.getBookQuantity());
             bookClient.updateStock(orderItem.getBookId(), updateStockRequest);
@@ -118,8 +131,35 @@ public class PaymentService {
                 .sessionId(sessionId)
                 .build();
         paymentRepository.save(payment);
-        OrderConfirmation orderConfirmation = paymentMapper.toOrderConfirmation(orderResponse);
-        paymentProducer.sendPaymentConfirmation(orderConfirmation);
+        paymentProducer.sendPaymentStatus(toPaymentStatusNotification(orderResponse, PaymentStatus.SUCCESS));
     }
+
+    @Transactional
+    public void handleStripePaymentFailure(String orderCode, String sessionId) {
+        InternalOrderResponse orderResponse = orderClient.getInternalOrderByCode(orderCode)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND))
+                .getResult();
+        if (paymentRepository.existsBySessionId(sessionId)) {
+            log.info("Stripe failure webhook already processed for sessionId={}", sessionId);
+            return;
+        }
+        Payment payment = Payment.builder()
+                .orderId(orderResponse.getId())
+                .userId(orderResponse.getUserId())
+                .totalAmount(orderResponse.getTotalAmount())
+                .type(PaymentMethod.STRIPE)
+                .status(PaymentStatus.FAILED)
+                .sessionId(sessionId)
+                .build();
+        paymentRepository.save(payment);
+        paymentProducer.sendPaymentStatus(toPaymentStatusNotification(orderResponse, PaymentStatus.FAILED));
+    }
+
+    private OrderConfirmation toPaymentStatusNotification(InternalOrderResponse orderResponse, PaymentStatus status) {
+        OrderConfirmation notification = paymentMapper.toOrderConfirmation(orderResponse);
+        notification.setStatus(status.name());
+        return notification;
+    }
+
 
 }

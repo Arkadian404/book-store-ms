@@ -90,13 +90,32 @@ public class EmailService {
     }
 
     @Async
+    public void sendOrderConfirmation(OrderConfirmation confirmation) throws MessagingException {
+        sendOrderBasedEmail(confirmation, EmailType.ORDER_CONFIRMATION);
+    }
+
+    @Async
     public void sendPaymentConfirmation(OrderConfirmation confirmation) throws MessagingException {
+        sendOrderBasedEmail(confirmation, EmailType.PAYMENT_CONFIRMATION);
+    }
+
+    @Async
+    public void sendPaymentSuccess(OrderConfirmation confirmation) throws MessagingException {
+        sendOrderBasedEmail(confirmation, EmailType.PAYMENT_SUCCESS);
+    }
+
+    @Async
+    public void sendPaymentFailure(OrderConfirmation confirmation) throws MessagingException {
+        sendOrderBasedEmail(confirmation, EmailType.PAYMENT_FAILURE);
+    }
+
+    private void sendOrderBasedEmail(OrderConfirmation confirmation, EmailType emailType) throws MessagingException {
         MimeMessage mimeMessage = sender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage,
                 MimeMessageHelper.MULTIPART_MODE_RELATED,
                 StandardCharsets.UTF_8.name());
         helper.setFrom(from);
-        final String type = EmailType.PAYMENT_CONFIRMATION.getType();
+        final String type = emailType.getType();
         Map<String, Object> variables = new HashMap<>();
         variables.put("orderCode", confirmation.getOrderCode());
         variables.put("firstname", confirmation.getFirstname());
@@ -110,10 +129,11 @@ public class EmailService {
         context.setVariables(variables);
         String htmlTemplate = engine.process(type, context);
         helper.setText(htmlTemplate, true);
-        helper.setSubject(EmailType.PAYMENT_CONFIRMATION.getSubject()+ " - #" + confirmation.getOrderCode());
+        helper.setSubject(emailType.getSubject() + " - #" + confirmation.getOrderCode());
         helper.setTo(confirmation.getEmail());
         sender.send(mimeMessage);
     }
+
 
 }
 

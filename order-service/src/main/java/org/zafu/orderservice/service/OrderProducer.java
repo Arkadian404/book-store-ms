@@ -16,11 +16,20 @@ import org.zafu.orderservice.dto.response.OrderResponse;
 public class OrderProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void sendPaymentConfirmation(OrderConfirmation orderConfirmation){
-        log.info("Sending payment confirmation to kafka topic");
+    public void sendOrderConfirmation(OrderConfirmation orderConfirmation){
+        log.info("Sending order confirmation to kafka topic");
+        send(orderConfirmation, "order-confirmation-topic");
+    }
+
+    public void sendPaymentStatus(OrderConfirmation orderConfirmation){
+        log.info("Sending payment status to kafka topic");
+        send(orderConfirmation, "payment-status-topic");
+    }
+
+    private void send(OrderConfirmation orderConfirmation, String topic) {
         Message<OrderConfirmation> message = MessageBuilder
                 .withPayload(orderConfirmation)
-                .setHeader(KafkaHeaders.TOPIC, "payment-confirmation-topic")
+                .setHeader(KafkaHeaders.TOPIC, topic)
                 .build();
         kafkaTemplate.send(message);
     }

@@ -69,14 +69,45 @@ public class NotificationConsumer {
         }
     }
 
-    @KafkaListener(topics = "payment-confirmation-topic", groupId = "email-group")
-    public void listenPaymentConfirmation(OrderConfirmation request, Acknowledgment acknowledgment){
+//    @KafkaListener(topics = "payment-confirmation-topic", groupId = "email-group")
+//    public void listenPaymentConfirmation(OrderConfirmation request, Acknowledgment acknowledgment){
+//        log.info("Received message {}", request);
+//        try {
+//            emailService.sendPaymentConfirmation(request);
+//            acknowledgment.acknowledge();
+//        }catch (MessagingException e){
+//            log.error("Error when sending payment confirmation email {}", e.getMessage());
+//            throw new RuntimeException(e);
+//        }
+//    }
+
+    @KafkaListener(topics = "order-confirmation-topic", groupId = "email-group")
+    public void listenOrderConfirmation(OrderConfirmation request, Acknowledgment acknowledgment){
         log.info("Received message {}", request);
         try {
-            emailService.sendPaymentConfirmation(request);
+            emailService.sendOrderConfirmation(request);
             acknowledgment.acknowledge();
         }catch (MessagingException e){
             log.error("Error when sending payment confirmation email {}", e.getMessage());
+            log.error("Error when sending order confirmation email {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @KafkaListener(topics = "payment-status-topic", groupId = "email-group")
+    public void listenPaymentStatus(OrderConfirmation request, Acknowledgment acknowledgment){
+        log.info("Received payment status {}", request);
+        try {
+            if ("SUCCESS".equalsIgnoreCase(request.getStatus())) {
+                emailService.sendPaymentSuccess(request);
+            } else if ("FAILED".equalsIgnoreCase(request.getStatus())) {
+                emailService.sendPaymentFailure(request);
+            } else {
+                emailService.sendPaymentConfirmation(request);
+            }
+            acknowledgment.acknowledge();
+        }catch (MessagingException e){
+            log.error("Error when sending payment status email {}", e.getMessage());
             throw new RuntimeException(e);
         }
     }

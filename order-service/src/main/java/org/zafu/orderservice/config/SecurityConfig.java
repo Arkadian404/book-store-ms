@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.zafu.orderservice.exception.CustomAccessDeniedHandler;
 
 
@@ -22,15 +23,15 @@ import org.zafu.orderservice.exception.CustomAccessDeniedHandler;
 public class SecurityConfig {
 
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/orders/v3/api-docs/**",
+            "/orders/v3/api-docs/**",
             "/orders/v3/swagger-ui/**",
             "/api/v1/orders/page",
-            "/api/v1/orders/code/**",
     };
 
     private final Decoder jwtDecoder;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
+    private final InternalServiceAuthFilter internalServiceAuthFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -47,6 +48,7 @@ public class SecurityConfig {
                                     .jwtAuthenticationConverter(converter()))
                             .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                             .accessDeniedHandler(customAccessDeniedHandler))
+                .addFilterBefore(internalServiceAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

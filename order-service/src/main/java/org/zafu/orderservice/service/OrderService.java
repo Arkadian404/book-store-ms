@@ -10,22 +10,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zafu.orderservice.client.BookClient;
 import org.zafu.orderservice.client.CartClient;
-import org.zafu.orderservice.client.PaymentClient;
 import org.zafu.orderservice.dto.PageResponse;
 import org.zafu.orderservice.dto.request.*;
 import org.zafu.orderservice.dto.response.*;
 import org.zafu.orderservice.exception.AppException;
 import org.zafu.orderservice.exception.ErrorCode;
-import org.zafu.orderservice.mapper.OrderItemMapper;
 import org.zafu.orderservice.mapper.OrderMapper;
 import org.zafu.orderservice.model.Order;
 import org.zafu.orderservice.model.OrderItem;
 import org.zafu.orderservice.model.OrderStatus;
-import org.zafu.orderservice.repository.OrderItemRepository;
 import org.zafu.orderservice.repository.OrderRepository;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,11 +34,12 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartClient cartClient;
     private final BookClient bookClient;
-    private final PaymentClient paymentClient;
     private final OrderMapper orderMapper;
-    private final OrderItemMapper utilMapper;
-    private final OrderItemRepository orderItemRepository;
+    private final List<OrderPayment> opList;
     private final OrderProducer orderProducer;
+
+
+    private record CartPreparation(CartResponse cartResponse, Map<Integer, BookResponse> booksById) {}
 
     public List<OrderResponse> getAll(){
         List<Order> orders = orderRepository.findAll();
@@ -51,17 +51,40 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(Integer userId, CreateOrderRequest request){
+        CartPreparation cartPreparation = prepareCart(userId);
+        Order order = createPendingOrder(userId, request, cartPreparation);
+        List<OrderItem> items = order.getItems();
+
+        OrderPayment op = opList.stream()
+                .filter(f -> f.supports() == request.getPaymentMethod())
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_METHOD_NOT_SUPPORTED));
+        return op.process(order, items);
+    }
+
+    private CartPreparation prepareCart(Integer userId) {
         CartResponse cartResponse = cartClient.getCartByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND))
                 .getResult();
-        for(CartItemResponse item : cartResponse.getItems()){
+
+        if (cartResponse.getItems().isEmpty()) {
+            throw new AppException(ErrorCode.CART_IS_EMPTY);
+        }
+        Map<Integer, BookResponse> booksById = new LinkedHashMap<>();
+
+        for (CartItemResponse item : cartResponse.getItems()){
             BookResponse bookResponse = bookClient.getBookById(item.getBookId())
                     .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND))
                     .getResult();
-            if(bookResponse.getStockQuantity() < item.getQuantity()){
+            if (bookResponse.getStockQuantity() < item.getQuantity()){
                 throw new AppException(ErrorCode.STOCK_NOT_ENOUGH);
             }
+            booksById.put(item.getBookId(), bookResponse);
         }
+        return new CartPreparation(cartResponse, booksById);
+    }
+
+    private Order createPendingOrder(Integer userId, CreateOrderRequest request, CartPreparation cartPreparation){
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(OrderStatus.PENDING);
@@ -76,78 +99,28 @@ public class OrderService {
         order.setNotes(request.getNotes());
         order.setPaymentMethod(request.getPaymentMethod());
 
-        List<OrderItem> orderItems = cartResponse.getItems().stream()
-                .map(item ->{
-                    BookResponse bookResponse = bookClient.getBookById(item.getBookId())
-                            .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND))
-                            .getResult();
-                    OrderItem orderItem = new OrderItem();
-                    orderItem.setBookId(item.getBookId());
-                    orderItem.setBookQuantity(item.getQuantity());
-                    orderItem.setBookPrice(bookResponse.getPrice());
-                    orderItem.setOrder(order);
-                    return orderItem;
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
-        if(orderItems.isEmpty()){
-            throw new AppException(ErrorCode.CART_IS_EMPTY);
-        }
+       List<OrderItem> orderItems = cartPreparation.cartResponse().getItems().stream()
+               .map(item -> toOrderItem(order, item, cartPreparation.booksById()))
+               .collect(Collectors.toCollection(ArrayList::new));
+
         order.setItems(orderItems);
         order.setTotalAmount(orderItems.stream()
                 .mapToDouble(item -> item.getBookPrice() * item.getBookQuantity())
                 .sum());
-        orderRepository.save(order);
-        if(request.getPaymentMethod().equals(PaymentMethod.COD)) {
-            return createOrderWithCOD(order);
-        }else if(request.getPaymentMethod().equals(PaymentMethod.STRIPE)) {
-            return createOrderWithStripe(order, orderItems);
-        }else{
-            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_SUPPORTED);
-        }
+        return orderRepository.save(order);
     }
 
-    private OrderResponse createOrderWithCOD(Order order){
-        for (OrderItem orderItem : order.getItems()) {
-            UpdateStockRequest updateStockRequest = new UpdateStockRequest();
-            updateStockRequest.setQuantity(orderItem.getBookQuantity());
-            bookClient.updateStock(orderItem.getBookId(), updateStockRequest);
+    private OrderItem toOrderItem(Order order, CartItemResponse item, Map<Integer, BookResponse> booksById){
+        BookResponse bookResponse = booksById.get(item.getBookId());
+        if (bookResponse == null) {
+            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
         }
-        order.setStatus(OrderStatus.PROCESSING);
-        orderRepository.save(order);
-        PaymentRequest paymentRequest = PaymentRequest.builder()
-                .userId(order.getUserId())
-                .orderId(order.getId())
-                .totalAmount(order.getTotalAmount())
-                .status(PaymentStatus.PROCESSING)
-                .type(PaymentMethod.COD)
-                .build();
-        paymentClient.savePayment(paymentRequest);
-        cartClient.clearCart(order.getUserId());
-        OrderResponse response =  orderMapper.toOrderResponse(order, bookClient);
-        OrderConfirmation confirmation = orderMapper.toOrderConfirmation(response);
-        orderProducer.sendPaymentConfirmation(confirmation);
-        return response;
-    }
-
-    private OrderResponse createOrderWithStripe(Order order, List<OrderItem> orderItems){
-        List<StripeItemRequest> stripeItemRequests = orderItems.stream()
-                .map(item -> utilMapper.toPaymentItemRequest(item, bookClient))
-                .collect(Collectors.toCollection(ArrayList::new));
-        StripeRequest stripeRequest = StripeRequest.builder()
-                .orderId(order.getId())
-                .orderCode(order.getOrderCode())
-                .userId(order.getUserId())
-                .items(stripeItemRequests)
-                .currency("VND")
-                .build();
-        StripeResponse paymentResponse = paymentClient.createPaymentSession(stripeRequest)
-                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_FAILED))
-                .getResult();
-        order.setStatus(OrderStatus.PENDING_PAYMENT);
-        orderRepository.save(order);
-        OrderResponse orderResponse = orderMapper.toOrderResponse(order, bookClient);
-        orderResponse.setPaymentUrl(paymentResponse.getSessionUrl());
-        return orderResponse;
+        OrderItem orderItem = new OrderItem();
+        orderItem.setBookId(item.getBookId());
+        orderItem.setBookQuantity(item.getQuantity());
+        orderItem.setBookPrice(bookResponse.getPrice());
+        orderItem.setOrder(order);
+        return orderItem;
     }
 
     public PageResponse<OrderResponse> getAllOrdersPaging(int page, int size){
@@ -194,13 +167,36 @@ public class OrderService {
         return orderMapper.toOrderResponse(order, bookClient);
     }
 
+    public InternalOrderResponse getInternalOrderByOrderCode(String orderCode){
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toInternalOrderResponse(order, bookClient);
+    }
+
 
     @Transactional
     public void updateOrderStatus(String orderCode, UpdateOrderStatusRequest request){
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.getStatus().canTransition(request.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
         order.setStatus(request.getStatus());
         orderRepository.save(order);
+        if (request.getStatus() == OrderStatus.CONFIRMED) {
+            OrderResponse response = orderMapper.toOrderResponse(order, bookClient);
+            orderProducer.sendOrderConfirmation(orderMapper.toOrderConfirmation(response));
+        }
+    }
+
+    @Transactional
+    public void markOrderAsSuccess(String orderCode){
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getStatus().ordinal() > OrderStatus.PROCESSING.ordinal()) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
+        order.setStatus(OrderStatus.PAID);
     }
 
 }

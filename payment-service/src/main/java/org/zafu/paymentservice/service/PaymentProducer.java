@@ -15,11 +15,21 @@ import org.zafu.paymentservice.dto.request.OrderConfirmation;
 public class PaymentProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Deprecated(forRemoval = true, since = "2025")
     public void sendPaymentConfirmation(OrderConfirmation orderConfirmation){
         log.info("Sending payment confirmation to kafka topic");
         Message<OrderConfirmation> message = MessageBuilder
                 .withPayload(orderConfirmation)
                 .setHeader(KafkaHeaders.TOPIC, "payment-confirmation-topic")
+                .build();
+        kafkaTemplate.send(message);
+    }
+
+    public void sendPaymentStatus(OrderConfirmation orderConfirmation){
+        log.info("Sending payment status to kafka topic");
+        Message<OrderConfirmation> message = MessageBuilder
+                .withPayload(orderConfirmation)
+                .setHeader(KafkaHeaders.TOPIC, "payment-status-topic")
                 .build();
         kafkaTemplate.send(message);
     }

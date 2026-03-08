@@ -1,5 +1,6 @@
 package org.zafu.orderservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -7,6 +8,7 @@ import org.zafu.orderservice.dto.ApiResponse;
 import org.zafu.orderservice.dto.PageResponse;
 import org.zafu.orderservice.dto.request.CreateOrderRequest;
 import org.zafu.orderservice.dto.request.UpdateOrderStatusRequest;
+import org.zafu.orderservice.dto.response.InternalOrderResponse;
 import org.zafu.orderservice.dto.response.OrderResponse;
 import org.zafu.orderservice.service.OrderService;
 
@@ -54,7 +56,7 @@ public class OrderController {
     @PostMapping("/user/{userId}")
     public ApiResponse<OrderResponse> createOrder(
             @PathVariable Integer userId,
-            @RequestBody CreateOrderRequest createOrderRequest
+            @RequestBody @Valid CreateOrderRequest createOrderRequest
     ) {
         return ApiResponse.<OrderResponse>builder()
                 .message("Order created")
@@ -63,6 +65,7 @@ public class OrderController {
     }
 
     @GetMapping("/code/{orderCode}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<OrderResponse> getOrderByCode(
             @PathVariable String orderCode
     ){
@@ -73,13 +76,38 @@ public class OrderController {
     }
 
     @PutMapping("/code/{orderCode}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> updateOrderStatus(
             @PathVariable String orderCode,
-            @RequestBody UpdateOrderStatusRequest request
+            @RequestBody @Valid UpdateOrderStatusRequest request
             ){
         orderService.updateOrderStatus(orderCode, request);
         return ApiResponse.<Void>builder()
                 .message("Order status updated")
+                .build();
+    }
+
+
+    @PutMapping("/internal/code/{orderCode}")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    public ApiResponse<Void> markOrderAsPaid(
+            @PathVariable String orderCode
+    ){
+        orderService.markOrderAsSuccess(orderCode);
+        return ApiResponse.<Void>builder()
+                .message("Order status updated")
+                .build();
+    }
+
+
+    @GetMapping("/internal/code/{orderCode}")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    public ApiResponse<InternalOrderResponse> getInternalOrderByCode(
+            @PathVariable String orderCode
+    ){
+        return ApiResponse.<InternalOrderResponse>builder()
+                .message("Order found")
+                .result(orderService.getInternalOrderByOrderCode(orderCode))
                 .build();
     }
 }
