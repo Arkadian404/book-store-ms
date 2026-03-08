@@ -10,18 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.zafu.orderservice.client.BookClient;
 import org.zafu.orderservice.client.CartClient;
-import org.zafu.orderservice.client.PaymentClient;
 import org.zafu.orderservice.dto.PageResponse;
 import org.zafu.orderservice.dto.request.*;
 import org.zafu.orderservice.dto.response.*;
 import org.zafu.orderservice.exception.AppException;
 import org.zafu.orderservice.exception.ErrorCode;
-import org.zafu.orderservice.mapper.OrderItemMapper;
 import org.zafu.orderservice.mapper.OrderMapper;
 import org.zafu.orderservice.model.Order;
 import org.zafu.orderservice.model.OrderItem;
 import org.zafu.orderservice.model.OrderStatus;
-import org.zafu.orderservice.repository.OrderItemRepository;
 import org.zafu.orderservice.repository.OrderRepository;
 
 import java.util.ArrayList;
@@ -35,11 +32,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartClient cartClient;
     private final BookClient bookClient;
-    private final PaymentClient paymentClient;
     private final OrderMapper orderMapper;
-    private final OrderItemMapper utilMapper;
-    private final OrderItemRepository orderItemRepository;
-    private final OrderProducer orderProducer;
+    private final List<OrderPayment> opList;
 
     public List<OrderResponse> getAll(){
         List<Order> orders = orderRepository.findAll();
@@ -51,6 +45,18 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(Integer userId, CreateOrderRequest request){
+        CartResponse cart = loadUserCart(userId);
+        Order order = createPendingOrder(userId, request, cart);
+        List<OrderItem> items = order.getItems();
+
+        OrderPayment op = opList.stream()
+                .filter(f -> f.supports() == request.getPaymentMethod())
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_METHOD_NOT_SUPPORTED));
+        return op.process(order, items);
+    }
+
+    private CartResponse loadUserCart(Integer userId) {
         CartResponse cartResponse = cartClient.getCartByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND))
                 .getResult();
@@ -62,6 +68,10 @@ public class OrderService {
                 throw new AppException(ErrorCode.STOCK_NOT_ENOUGH);
             }
         }
+        return cartResponse;
+    }
+
+    private Order createPendingOrder(Integer userId, CreateOrderRequest request, CartResponse cart){
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(OrderStatus.PENDING);
@@ -76,7 +86,7 @@ public class OrderService {
         order.setNotes(request.getNotes());
         order.setPaymentMethod(request.getPaymentMethod());
 
-        List<OrderItem> orderItems = cartResponse.getItems().stream()
+        List<OrderItem> orderItems = cart.getItems().stream()
                 .map(item ->{
                     BookResponse bookResponse = bookClient.getBookById(item.getBookId())
                             .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND))
@@ -96,59 +106,9 @@ public class OrderService {
         order.setTotalAmount(orderItems.stream()
                 .mapToDouble(item -> item.getBookPrice() * item.getBookQuantity())
                 .sum());
-        orderRepository.save(order);
-        if(request.getPaymentMethod().equals(PaymentMethod.COD)) {
-            return createOrderWithCOD(order);
-        }else if(request.getPaymentMethod().equals(PaymentMethod.STRIPE)) {
-            return createOrderWithStripe(order, orderItems);
-        }else{
-            throw new AppException(ErrorCode.PAYMENT_METHOD_NOT_SUPPORTED);
-        }
+        return orderRepository.save(order);
     }
 
-    private OrderResponse createOrderWithCOD(Order order){
-        for (OrderItem orderItem : order.getItems()) {
-            UpdateStockRequest updateStockRequest = new UpdateStockRequest();
-            updateStockRequest.setQuantity(orderItem.getBookQuantity());
-            bookClient.updateStock(orderItem.getBookId(), updateStockRequest);
-        }
-        order.setStatus(OrderStatus.PROCESSING);
-        orderRepository.save(order);
-        PaymentRequest paymentRequest = PaymentRequest.builder()
-                .userId(order.getUserId())
-                .orderId(order.getId())
-                .totalAmount(order.getTotalAmount())
-                .status(PaymentStatus.PROCESSING)
-                .type(PaymentMethod.COD)
-                .build();
-        paymentClient.savePayment(paymentRequest);
-        cartClient.clearCart(order.getUserId());
-        OrderResponse response =  orderMapper.toOrderResponse(order, bookClient);
-        OrderConfirmation confirmation = orderMapper.toOrderConfirmation(response);
-        orderProducer.sendPaymentConfirmation(confirmation);
-        return response;
-    }
-
-    private OrderResponse createOrderWithStripe(Order order, List<OrderItem> orderItems){
-        List<StripeItemRequest> stripeItemRequests = orderItems.stream()
-                .map(item -> utilMapper.toPaymentItemRequest(item, bookClient))
-                .collect(Collectors.toCollection(ArrayList::new));
-        StripeRequest stripeRequest = StripeRequest.builder()
-                .orderId(order.getId())
-                .orderCode(order.getOrderCode())
-                .userId(order.getUserId())
-                .items(stripeItemRequests)
-                .currency("VND")
-                .build();
-        StripeResponse paymentResponse = paymentClient.createPaymentSession(stripeRequest)
-                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_FAILED))
-                .getResult();
-        order.setStatus(OrderStatus.PENDING_PAYMENT);
-        orderRepository.save(order);
-        OrderResponse orderResponse = orderMapper.toOrderResponse(order, bookClient);
-        orderResponse.setPaymentUrl(paymentResponse.getSessionUrl());
-        return orderResponse;
-    }
 
     public PageResponse<OrderResponse> getAllOrdersPaging(int page, int size){
         if(page < 1 || size < 1){

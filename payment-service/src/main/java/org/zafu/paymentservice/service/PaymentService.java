@@ -95,10 +95,18 @@ public class PaymentService {
 
 
     @Transactional
-    public void handleStripePaymentSuccess(String orderCode, String sessionId){
+    public void handleStripePaymentSuccess(String orderCode, String sessionId) {
+        if (paymentRepository.existsBySessionId(sessionId)) {
+            log.info("Stripe webhook already processed for sessionId={}", sessionId);
+            return;
+        }
         OrderResponse orderResponse = orderClient.getOrderByOrderCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND))
                 .getResult();
+        if (paymentRepository.existsByOrderIdAndType(orderResponse.getId(), PaymentMethod.STRIPE)) {
+            log.info("Payment already recorded for orderId={}", orderResponse.getId());
+            return;
+        }
         UpdateOrderStatusRequest request =  UpdateOrderStatusRequest.builder()
                 .status(OrderStatus.PAID)
                 .build();
