@@ -22,7 +22,9 @@ import org.zafu.orderservice.model.OrderStatus;
 import org.zafu.orderservice.repository.OrderRepository;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +37,9 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final List<OrderPayment> opList;
 
+
+    private record CartPreparation(CartResponse cartResponse, Map<Integer, BookResponse> booksById) {}
+
     public List<OrderResponse> getAll(){
         List<Order> orders = orderRepository.findAll();
         return orders.stream()
@@ -45,8 +50,8 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(Integer userId, CreateOrderRequest request){
-        CartResponse cart = loadUserCart(userId);
-        Order order = createPendingOrder(userId, request, cart);
+        CartPreparation cartPreparation = prepareCart(userId);
+        Order order = createPendingOrder(userId, request, cartPreparation);
         List<OrderItem> items = order.getItems();
 
         OrderPayment op = opList.stream()
@@ -56,22 +61,29 @@ public class OrderService {
         return op.process(order, items);
     }
 
-    private CartResponse loadUserCart(Integer userId) {
+    private CartPreparation prepareCart(Integer userId) {
         CartResponse cartResponse = cartClient.getCartByUserId(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CART_NOT_FOUND))
                 .getResult();
-        for(CartItemResponse item : cartResponse.getItems()){
+
+        if (cartResponse.getItems().isEmpty()) {
+            throw new AppException(ErrorCode.CART_IS_EMPTY);
+        }
+        Map<Integer, BookResponse> booksById = new LinkedHashMap<>();
+
+        for (CartItemResponse item : cartResponse.getItems()){
             BookResponse bookResponse = bookClient.getBookById(item.getBookId())
                     .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND))
                     .getResult();
-            if(bookResponse.getStockQuantity() < item.getQuantity()){
+            if (bookResponse.getStockQuantity() < item.getQuantity()){
                 throw new AppException(ErrorCode.STOCK_NOT_ENOUGH);
             }
+            booksById.put(item.getBookId(), bookResponse);
         }
-        return cartResponse;
+        return new CartPreparation(cartResponse, booksById);
     }
 
-    private Order createPendingOrder(Integer userId, CreateOrderRequest request, CartResponse cart){
+    private Order createPendingOrder(Integer userId, CreateOrderRequest request, CartPreparation cartPreparation){
         Order order = new Order();
         order.setUserId(userId);
         order.setStatus(OrderStatus.PENDING);
@@ -86,22 +98,10 @@ public class OrderService {
         order.setNotes(request.getNotes());
         order.setPaymentMethod(request.getPaymentMethod());
 
-        List<OrderItem> orderItems = cart.getItems().stream()
-                .map(item ->{
-                    BookResponse bookResponse = bookClient.getBookById(item.getBookId())
-                            .orElseThrow(() -> new AppException(ErrorCode.BOOK_NOT_FOUND))
-                            .getResult();
-                    OrderItem orderItem = new OrderItem();
-                    orderItem.setBookId(item.getBookId());
-                    orderItem.setBookQuantity(item.getQuantity());
-                    orderItem.setBookPrice(bookResponse.getPrice());
-                    orderItem.setOrder(order);
-                    return orderItem;
-                })
-                .collect(Collectors.toCollection(ArrayList::new));
-        if(orderItems.isEmpty()){
-            throw new AppException(ErrorCode.CART_IS_EMPTY);
-        }
+       List<OrderItem> orderItems = cartPreparation.cartResponse().getItems().stream()
+               .map(item -> toOrderItem(order, item, cartPreparation.booksById()))
+               .collect(Collectors.toCollection(ArrayList::new));
+
         order.setItems(orderItems);
         order.setTotalAmount(orderItems.stream()
                 .mapToDouble(item -> item.getBookPrice() * item.getBookQuantity())
@@ -109,6 +109,18 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
+    private OrderItem toOrderItem(Order order, CartItemResponse item, Map<Integer, BookResponse> booksById){
+        BookResponse bookResponse = booksById.get(item.getBookId());
+        if (bookResponse == null) {
+            throw new AppException(ErrorCode.BOOK_NOT_FOUND);
+        }
+        OrderItem orderItem = new OrderItem();
+        orderItem.setBookId(item.getBookId());
+        orderItem.setBookQuantity(item.getQuantity());
+        orderItem.setBookPrice(bookResponse.getPrice());
+        orderItem.setOrder(order);
+        return orderItem;
+    }
 
     public PageResponse<OrderResponse> getAllOrdersPaging(int page, int size){
         if(page < 1 || size < 1){
