@@ -9,12 +9,15 @@ import com.stripe.net.Webhook;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.zafu.paymentservice.dto.ApiResponse;
 import org.zafu.paymentservice.dto.request.PaymentRequest;
 import org.zafu.paymentservice.dto.request.StripeRequest;
 import org.zafu.paymentservice.dto.response.StripeResponse;
+import org.zafu.paymentservice.exception.AppException;
+import org.zafu.paymentservice.exception.ErrorCode;
 import org.zafu.paymentservice.service.PaymentService;
 
 @RestController
@@ -54,21 +57,21 @@ public class PaymentController {
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader
     ){
-        Event event = null;
+        Event event;
         try {
             event = Webhook.constructEvent(payload, sigHeader, signingKey);
         } catch (SignatureVerificationException e) {
             log.error("Invalid Stripe signature: {}", e.getMessage());
-            throw new RuntimeException(e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
         }
         EventDataObjectDeserializer deserializer = event.getDataObjectDeserializer();
-        StripeObject stripeObject = null;
+        StripeObject stripeObject;
         if(deserializer.getObject().isPresent()){
             stripeObject = deserializer.getObject().get();
             log.info("Stripe object: {}", stripeObject);
         }else {
             log.error("Deserialization failed for Event: {}", event);
-            throw new RuntimeException("Deserialization failed for Event");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid event payload");
         }
         log.info("Received event: {}", event.getId());
         String type = event.getType();
@@ -76,6 +79,9 @@ public class PaymentController {
             log.info("Checkout session completed");
             Session session = (Session) stripeObject;
             String orderCode = session.getMetadata().get("orderCode");
+            if (orderCode == null || orderCode.isBlank()) {
+                throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+            }
             paymentService.handleStripePaymentSuccess(orderCode, session.getId());
         } else if (type.equals("checkout.session.expired")) {
             log.info("Checkout session expired");

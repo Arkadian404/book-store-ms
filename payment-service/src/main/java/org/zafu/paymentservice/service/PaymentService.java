@@ -84,7 +84,7 @@ public class PaymentService {
                     .status("Success payment")
                     .message("Session created successfully")
                     .build();
-        }catch (StripeException e) {
+        } catch (StripeException e) {
             log.error("Error ", e);
             throw new AppException(ErrorCode.PAYMENT_FAILED);
         } catch (Exception e) {
@@ -107,6 +107,17 @@ public class PaymentService {
             log.info("Payment already recorded for orderId={}", orderResponse.getId());
             return;
         }
+
+        if (orderResponse.getStatus() == OrderStatus.PAID) {
+            log.info("Order {} is already marked as paid", orderCode);
+            return;
+        }
+
+        if (orderResponse.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            log.warn("Ignoring Stripe payment success for order {} in unexpected state {}", orderCode, orderResponse.getStatus());
+            throw new AppException(ErrorCode.PAYMENT_FAILED);
+        }
+
         UpdateOrderStatusRequest request =  UpdateOrderStatusRequest.builder()
                 .status(OrderStatus.PAID)
                 .build();
