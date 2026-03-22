@@ -171,6 +171,9 @@ public class OrderService {
     public void updateOrderStatus(String orderCode, UpdateOrderStatusRequest request){
         Order order = orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (!order.getStatus().canTransition(request.getStatus())) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
         order.setStatus(request.getStatus());
         orderRepository.save(order);
     }

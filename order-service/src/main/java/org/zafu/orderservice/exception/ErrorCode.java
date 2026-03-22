@@ -18,6 +18,7 @@ public enum ErrorCode {
     PAGE_OR_SIZE_MUST_BE_VALID(123, "Page or size isn't valid", HttpStatus.BAD_REQUEST),
     PAYMENT_FAILED(115, "Payment failed", HttpStatus.BAD_REQUEST),
     PAYMENT_METHOD_NOT_SUPPORTED(119, "Payment method not supported",HttpStatus.BAD_REQUEST),
+    INVALID_ORDER_STATUS_TRANSITION(120, "Invalid order status transition", HttpStatus.BAD_REQUEST),
     CART_IS_EMPTY(110, "Cart is empty",HttpStatus.BAD_REQUEST );
 
     private final int code;
