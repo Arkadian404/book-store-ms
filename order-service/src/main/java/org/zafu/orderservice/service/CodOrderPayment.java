@@ -11,6 +11,8 @@ import org.zafu.orderservice.dto.request.PaymentRequest;
 import org.zafu.orderservice.dto.request.PaymentStatus;
 import org.zafu.orderservice.dto.request.UpdateStockRequest;
 import org.zafu.orderservice.dto.response.OrderResponse;
+import org.zafu.orderservice.exception.AppException;
+import org.zafu.orderservice.exception.ErrorCode;
 import org.zafu.orderservice.mapper.OrderMapper;
 import org.zafu.orderservice.model.Order;
 import org.zafu.orderservice.model.OrderItem;
@@ -44,6 +46,9 @@ public class CodOrderPayment implements OrderPayment{
             bookClient.updateStock(item.getBookId(), updateStockRequest);
         }
 
+        if (!order.getStatus().canTransition(OrderStatus.PROCESSING)) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
         order.setStatus(OrderStatus.PROCESSING);
         orderRepository.save(order);
 
