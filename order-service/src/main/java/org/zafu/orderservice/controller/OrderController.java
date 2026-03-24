@@ -1,5 +1,6 @@
 package org.zafu.orderservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class OrderController {
     @PostMapping("/user/{userId}")
     public ApiResponse<OrderResponse> createOrder(
             @PathVariable Integer userId,
-            @RequestBody CreateOrderRequest createOrderRequest
+            @RequestBody @Valid CreateOrderRequest createOrderRequest
     ) {
         return ApiResponse.<OrderResponse>builder()
                 .message("Order created")
@@ -75,7 +76,7 @@ public class OrderController {
     @PutMapping("/code/{orderCode}")
     public ApiResponse<Void> updateOrderStatus(
             @PathVariable String orderCode,
-            @RequestBody UpdateOrderStatusRequest request
+            @RequestBody @Valid UpdateOrderStatusRequest request
             ){
         orderService.updateOrderStatus(orderCode, request);
         return ApiResponse.<Void>builder()
