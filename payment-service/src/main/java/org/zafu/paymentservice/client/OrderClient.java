@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.zafu.paymentservice.config.OrderFeignConfig;
 import org.zafu.paymentservice.dto.ApiResponse;
 import org.zafu.paymentservice.dto.request.UpdateOrderStatusRequest;
 import org.zafu.paymentservice.dto.response.OrderResponse;
@@ -13,7 +14,8 @@ import java.util.Optional;
 
 @FeignClient(
         name = "order-service",
-        url = "${app.client.order-url}"
+        url = "${app.client.order-url}",
+        configuration = OrderFeignConfig.class
 )
 public interface OrderClient {
     @GetMapping("/orders/code/{orderCode}")

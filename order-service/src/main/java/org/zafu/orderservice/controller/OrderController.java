@@ -64,6 +64,7 @@ public class OrderController {
     }
 
     @GetMapping("/code/{orderCode}")
+    @PreAuthorize("isAuthenticated()")
     public ApiResponse<OrderResponse> getOrderByCode(
             @PathVariable String orderCode
     ){
@@ -74,6 +75,7 @@ public class OrderController {
     }
 
     @PutMapping("/code/{orderCode}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_SERVICE')")
     public ApiResponse<Void> updateOrderStatus(
             @PathVariable String orderCode,
             @RequestBody @Valid UpdateOrderStatusRequest request
