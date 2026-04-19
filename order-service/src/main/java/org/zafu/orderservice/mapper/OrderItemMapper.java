@@ -7,6 +7,7 @@ import org.mapstruct.MappingTarget;
 import org.zafu.orderservice.client.BookClient;
 import org.zafu.orderservice.dto.request.StripeItemRequest;
 import org.zafu.orderservice.dto.response.BookResponse;
+import org.zafu.orderservice.dto.response.InternalOrderItemResponse;
 import org.zafu.orderservice.dto.response.OrderItemResponse;
 import org.zafu.orderservice.model.OrderItem;
 
@@ -14,7 +15,7 @@ import org.zafu.orderservice.model.OrderItem;
 public interface OrderItemMapper {
     StripeItemRequest toPaymentItemRequest(OrderItem orderItem, @Context BookClient bookClient);
     OrderItemResponse toOrderItemResponse(OrderItem orderItem, @Context BookClient bookClient);
-
+    InternalOrderItemResponse toInternalOrderItemResponse(OrderItem orderItem);
 
     @AfterMapping
     default void fillBookInfoPayment(@MappingTarget StripeItemRequest request, OrderItem orderItem, @Context BookClient bookClient){

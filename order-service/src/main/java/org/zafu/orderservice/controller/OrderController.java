@@ -8,6 +8,7 @@ import org.zafu.orderservice.dto.ApiResponse;
 import org.zafu.orderservice.dto.PageResponse;
 import org.zafu.orderservice.dto.request.CreateOrderRequest;
 import org.zafu.orderservice.dto.request.UpdateOrderStatusRequest;
+import org.zafu.orderservice.dto.response.InternalOrderResponse;
 import org.zafu.orderservice.dto.response.OrderResponse;
 import org.zafu.orderservice.service.OrderService;
 
@@ -75,7 +76,7 @@ public class OrderController {
     }
 
     @PutMapping("/code/{orderCode}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'INTERNAL_SERVICE')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> updateOrderStatus(
             @PathVariable String orderCode,
             @RequestBody @Valid UpdateOrderStatusRequest request
@@ -83,6 +84,30 @@ public class OrderController {
         orderService.updateOrderStatus(orderCode, request);
         return ApiResponse.<Void>builder()
                 .message("Order status updated")
+                .build();
+    }
+
+
+    @PutMapping("/internal/code/{orderCode}")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    public ApiResponse<Void> markOrderAsPaid(
+            @PathVariable String orderCode
+    ){
+        orderService.markOrderAsSuccess(orderCode);
+        return ApiResponse.<Void>builder()
+                .message("Order status updated")
+                .build();
+    }
+
+
+    @GetMapping("/internal/code/{orderCode}")
+    @PreAuthorize("hasRole('INTERNAL_SERVICE')")
+    public ApiResponse<InternalOrderResponse> getInternalOrderByCode(
+            @PathVariable String orderCode
+    ){
+        return ApiResponse.<InternalOrderResponse>builder()
+                .message("Order found")
+                .result(orderService.getInternalOrderByOrderCode(orderCode))
                 .build();
     }
 }

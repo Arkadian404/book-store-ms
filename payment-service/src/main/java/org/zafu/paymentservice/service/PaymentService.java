@@ -12,13 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.zafu.paymentservice.client.BookClient;
 import org.zafu.paymentservice.client.CartClient;
 import org.zafu.paymentservice.dto.request.*;
-import org.zafu.paymentservice.dto.response.OrderItemResponse;
+import org.zafu.paymentservice.dto.response.*;
 import org.zafu.paymentservice.mapper.PaymentMapper;
 import org.zafu.paymentservice.repository.PaymentRepository;
 import org.zafu.paymentservice.client.OrderClient;
-import org.zafu.paymentservice.dto.response.OrderResponse;
-import org.zafu.paymentservice.dto.response.OrderStatus;
-import org.zafu.paymentservice.dto.response.StripeResponse;
 import org.zafu.paymentservice.exception.AppException;
 import org.zafu.paymentservice.exception.ErrorCode;
 import org.zafu.paymentservice.model.Payment;
@@ -100,7 +97,7 @@ public class PaymentService {
             log.info("Stripe webhook already processed for sessionId={}", sessionId);
             return;
         }
-        OrderResponse orderResponse = orderClient.getOrderByOrderCode(orderCode)
+        InternalOrderResponse orderResponse = orderClient.getInternalOrderByCode(orderCode)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND))
                 .getResult();
         if (paymentRepository.existsByOrderIdAndType(orderResponse.getId(), PaymentMethod.STRIPE)) {
@@ -118,13 +115,10 @@ public class PaymentService {
             throw new AppException(ErrorCode.PAYMENT_FAILED);
         }
 
-        UpdateOrderStatusRequest request =  UpdateOrderStatusRequest.builder()
-                .status(OrderStatus.PAID)
-                .build();
-        orderClient.updateOrderStatus(orderResponse.getOrderCode(), request);
-        for (OrderItemResponse orderItem : orderResponse.getItems()) {
+        orderClient.markOrderAsPaid(orderResponse.getOrderCode());
+        for (InternalOrderItemResponse orderItem : orderResponse.getItems()) {
             UpdateStockRequest updateStockRequest = new UpdateStockRequest();
-            updateStockRequest.setQuantity(orderItem.getBookQuantity());
+            updateStockRequest.setQuantity(orderItem.getQuantity());
             bookClient.updateStock(orderItem.getBookId(), updateStockRequest);
         }
         cartClient.clearCart(orderResponse.getUserId());
@@ -137,6 +131,7 @@ public class PaymentService {
                 .sessionId(sessionId)
                 .build();
         paymentRepository.save(payment);
+        //TODO: refactor this code!!!
         OrderConfirmation orderConfirmation = paymentMapper.toOrderConfirmation(orderResponse);
         paymentProducer.sendPaymentConfirmation(orderConfirmation);
     }

@@ -166,6 +166,12 @@ public class OrderService {
         return orderMapper.toOrderResponse(order, bookClient);
     }
 
+    public InternalOrderResponse getInternalOrderByOrderCode(String orderCode){
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        return orderMapper.toInternalOrderResponse(order);
+    }
+
 
     @Transactional
     public void updateOrderStatus(String orderCode, UpdateOrderStatusRequest request){
@@ -176,6 +182,16 @@ public class OrderService {
         }
         order.setStatus(request.getStatus());
         orderRepository.save(order);
+    }
+
+    @Transactional
+    public void markOrderAsSuccess(String orderCode){
+        Order order = orderRepository.findByOrderCode(orderCode)
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        if (order.getStatus().ordinal() > OrderStatus.PROCESSING.ordinal()) {
+            throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+        }
+        order.setStatus(OrderStatus.PAID);
     }
 
 }

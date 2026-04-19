@@ -5,6 +5,7 @@ import org.zafu.orderservice.client.BookClient;
 import org.zafu.orderservice.dto.request.CreateOrderRequest;
 import org.zafu.orderservice.dto.request.OrderConfirmation;
 import org.zafu.orderservice.dto.request.OrderItemConfirmation;
+import org.zafu.orderservice.dto.response.InternalOrderResponse;
 import org.zafu.orderservice.dto.response.OrderResponse;
 import org.zafu.orderservice.model.Order;
 
@@ -21,6 +22,9 @@ public interface OrderMapper {
     @Mapping(target = "items", source = "items", ignore = true)
     @Mapping(target = "address", source = "address", ignore = true)
     OrderConfirmation toOrderConfirmation(OrderResponse order);
+
+    @Mapping(target = "items", source = "items")
+    InternalOrderResponse toInternalOrderResponse(Order order);
 
     @AfterMapping
     default void setOrderConfirmationItems(@MappingTarget OrderConfirmation confirmation, OrderResponse response){
